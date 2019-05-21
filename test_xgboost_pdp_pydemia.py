@@ -15,7 +15,7 @@ from pdpbox import pdp, info_plots
 print(xgb.__version__)
 print(pdpbox.__version__)
 
-os.chdir('../git/choilime')
+os.chdir('../git/xgboost-lime-pdp')
 
 
 # DUMP_PATH = 'data/nativeBoost2'
