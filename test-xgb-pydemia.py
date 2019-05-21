@@ -21,7 +21,7 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
 
-os.chdir('../git/choilime')
+os.chdir('../git/xgboost-lime-pdp')
 
 DUMP_PATH = 'data/nativeBoost2'
 # %%
