@@ -15,12 +15,12 @@ from pdpbox import pdp, info_plots
 print(xgb.__version__)
 print(pdpbox.__version__)
 
-os.chdir('../git/choilime')
+os.chdir('../git/xgboost-lime-pdp')
 
 
 # DUMP_PATH = 'data/nativeBoost2'
-# train_filename = 'datasets/train_63qYitG.csv'
-# test_filename = 'datasets/test_XaoFywY.csv'
+# train_filename = 'data/train_63qYitG.csv'
+# test_filename = 'data/test_XaoFywY.csv'
 
 DUMP_PATH = 'data/nativeBoost6features'
 train_filename = 'data/train_new.csv'

@@ -21,7 +21,7 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
 
-os.chdir('../git/choilime')
+os.chdir('../git/xgboost-lime-pdp')
 
 DUMP_PATH = 'data/nativeBoost2'
 # %%
@@ -53,8 +53,8 @@ class DataFrameImputer(TransformerMixin):
 
 # %%
 
-train_filename = 'datasets/train_63qYitG.csv'
-test_filename = 'datasets/test_XaoFywY.csv'
+train_filename = 'data/train_63qYitG.csv'
+test_filename = 'data/test_XaoFywY.csv'
 train_df = pd.read_csv(train_filename, header=0)
 test_df = pd.read_csv(test_filename, header=0)
 cols=train_df.columns
