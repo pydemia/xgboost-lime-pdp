@@ -3,88 +3,262 @@
 
 
 import os
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
+import sklearn as skl
+from sklearn.base import TransformerMixin
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 import xgboost as xgb
+# from xgboost.compat import XGBLabelEncoder
+# => is IDENTICAL to `sklearn.preprocessing.LabelEncoder`
+
 import pdpbox
 from pdpbox import pdp, info_plots
 
 
-print(xgb.__version__)
-print(pdpbox.__version__)
+for _pkg in [np, pd, skl, xgb, mpl, pdpbox]:
+    print(f'{_pkg.__name__:<7} = {_pkg.__version__}')
+
+font_dict = {
+    path.split('/')[-1][:-4]: path
+    for path in fm.get_fontconfig_fonts()
+    if 'dejavu' in path.lower().split('/')[-1]
+}
+
+plt.rcParams['font.family'] = sorted(font_dict.keys(), key=len)[0]
+
 
 os.chdir('../git/xgboost-lime-pdp')
+fpath = '.'
 
 
-# DUMP_PATH = 'data/nativeBoost2'
-# train_filename = 'data/train_63qYitG.csv'
-# test_filename = 'data/test_XaoFywY.csv'
+# %% Classes & Functions -----------------------------------------------------
 
-DUMP_PATH = 'data/nativeBoost6features'
-train_filename = 'data/train_new.csv'
-test_filename = 'data/test_new.csv'
-
-X = train_df = pd.read_csv(train_filename, header=0)
-Y = test_df = pd.read_csv(test_filename, header=0)
-XY = pd.concat([X, Y], axis=1)
-
-x_cols = feature_names = X.columns.tolist()
-y_cols = Y.columns.tolist()
-xy_cols = XY.columns.tolist()
+def as_int(string):
+    return np.fromstring(string, dtype=np.int64, sep=',')[0]
 
 
+def as_int_str(string):
+    return np.fromstring(string, dtype=np.int64, sep=',').astype(np.str)[0]
 
 
-model = xgb.XGBModel()
+def as_str(string):
+    return np.fromstring(string, dtype=np.str, sep=',')[0]
+
+
+class DataFrameImputer(TransformerMixin):
+    """Fill missing values.
+
+    Columns of dtype object are imputed with the most frequent value
+    in column.
+    Columns of other types are imputed with mean of column.
+
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def fit(self, X, y=None):
+
+        self.fill = pd.Series(
+            [
+                X[c].value_counts().index[0]
+                if X[c].dtype == np.dtype('O')
+                else X[c].mean()
+                for c in X
+            ],
+            index=X.columns,
+        )
+        return self
+
+    def transform(self, X, y=None):
+        return X.fillna(self.fill)
+
+
+def preprocess_by_column(dataframe):
+    """Column Typing & Categorization.
+
+    If a column has `float`, it will be min-max scaled.
+    If a column has `str`, it will be categorized & substitute by int,
+    which is its code number.
+    If a column has `int`, do nothing.
+
+    Parameters
+    ----------
+    dataframe: pandas.DataFrame
+        Data to preprocess.
+
+    Return
+    ------
+    dataframe: pandas.DataFrame
+        Preprocessed Data.
+
+    col_dict: dict
+        A dictionary of column lists by its dtype.
+
+    float_scaler: sklearn.preprocessing.MinMaxScaler
+        A MinMaxScaler instance of `float` type columns.
+
+    """
+    grouped = dataframe.columns.to_series().groupby(dataframe.dtypes).groups
+    col_types = {
+        dtype.name: colname_list.tolist()
+        for dtype, colname_list in grouped.items()
+    }
+    float_columns = col_types.get('float64', [])
+    int_columns = col_types.get('int64', [])
+    str_columns = col_types.get('object', [])
+    cat_columns = int_columns + str_columns
+
+    if bool(cat_columns):
+        dataframe[cat_columns] = dataframe[cat_columns].astype('category')
+        category_codes_df = (
+            dataframe[cat_columns].apply(lambda x: x.cat.codes)
+        )
+        category_names_df = (
+            dataframe[cat_columns].apply(lambda x: x.cat.categorical)
+        )
+        category_dict = (
+            XY
+            [cat_columns]
+            .agg(lambda x: [x.cat.categories.tolist()])
+            .to_dict('records')
+        )[0]
+        dataframe[cat_columns] = category_codes_df
+
+    else:
+        category_dict = {}
+
+    if float_columns is not None:
+        float_scaler = MinMaxScaler(feature_range=(0, 1))
+        dataframe[float_columns] = float_scaler.fit_transform(
+            dataframe[float_columns]
+        )
+
+    col_dict = {
+        'float': float_columns,
+        'category': cat_columns,
+    }
+
+    return dataframe, col_dict, category_dict, float_scaler
+
+
+# %% LOAD DATA: CASE in {1, 2} -----------------------------------------------
+
+CASE = 2
+
+if int(CASE) == 1:
+    DUMP_PATH = f'{fpath}/data/nativeBoost2'
+    train_filename = f'{fpath}/data/train_63qYitG.csv'
+    test_filename = f'{fpath}/data/test_XaoFywY.csv'
+
+elif int(CASE) == 2:
+    DUMP_PATH = f'{fpath}/data/nativeBoost6features'
+    train_filename = f'{fpath}/data/train_new.csv'
+    test_filename = f'{fpath}/data/test_new.csv'
+
+else:
+    raise ValueError('`CASE` Should be int `1` or int `2`.')
+
+
+# DATA LOADING ---------------------------------------------------------------
+
+if int(CASE) == 1:
+
+    int_type_colnames = ['Surge_Pricing_Type', 'Var3']
+    col_converter = {colname: as_int_str for colname in int_type_colnames}
+
+    train_df = pd.read_csv(
+        train_filename, header=0, converters=col_converter,
+    )
+    test_df = pd.read_csv(
+        test_filename, header=0, converters=col_converter,
+    )
+
+    data = pd.concat(
+        [train_df, test_df],
+        axis=0,
+        ignore_index=True,
+    )
+    data = DataFrameImputer().fit_transform(data)
+    data = data.drop(
+        [
+            'Trip_ID',
+            'Cancellation_Last_1Month',
+            'Confidence_Life_Style_Index',
+            'Gender',
+            'Life_Style_Index',
+            'Var1',
+            'Var2',
+        ],
+        axis=1,
+    )
+
+    XY = data
+
+    # XY.columns = [f"f{i}" for i in range(len(XY.columns))]
+    # X.columns = XY.columns[:len(X.columns)]
+    # Y.columns = XY.columns[len(X.columns):]
+
+    y_cols = target_names = ['Surge_Pricing_Type']
+    x_cols = feature_names = data.columns.drop(target_names).tolist()
+    xy_cols = data.columns.tolist()
+
+elif int(CASE) == 2:
+    int_type_colnames = ['c1', 'c2', 'c6', 'r1']
+    col_converter = {colname: as_int_str for colname in int_type_colnames}
+
+    X = train_df = pd.read_csv(
+        train_filename, header=0, converters=col_converter,
+    )
+    Y = test_df = pd.read_csv(
+        test_filename, header=0, converters=col_converter,
+    )
+    XY = data = pd.concat([X, Y], axis=1)
+
+    XY.columns = [f"f{i}" for i in range(len(XY.columns))]
+    X.columns = XY.columns[:len(X.columns)]
+    Y.columns = XY.columns[len(X.columns):]
+
+    y_cols = target_names = Y.columns.tolist()
+    x_cols = feature_names = X.columns.tolist()
+    xy_cols = XY.columns.tolist()
+
+
+# %% Preprocessing -----------------------------------------------------------
+
+XY, col_types_dict, category_dict, float_scaler = preprocess_by_column(XY)
+
+X = source_df = XY[XY.columns.drop(target_names)]
+Y = target_df = XY[target_names]
+Y_series = target_series = Y[Y.columns[0]]
+
+print(target_names)
+
+
+# %% Load a pre-trained Model ------------------------------------------------
+
+model = xgb.XGBClassifier(objective='multi:softprob')
 model.load_model(DUMP_PATH)
+model.n_classes_ = len(np.unique(Y.values))
+model._le = LabelEncoder().fit(np.unique(Y.values))
 
-_tmp_model = xgb.XGBClassifier()
-_tmp_model.load_model(DUMP_PATH)
-_tmp_model.predict_proba(X).shape
-
-# %% Recommended Method to load a proper model: `LabelEncoder` ---------------
-
-from sklearn.preprocessing import LabelEncoder
+print(model)
+print('X: ', X.shape)
+print('Y unique: ', len(np.unique(Y)), np.unique(Y))
+print('predict_proba: ', model.predict_proba(X).shape)
+print('predict: ', model.predict(X).shape)
 
 
-clf = xgb.XGBClassifier()
-booster = xgb.Booster()
-booster.load_model(DUMP_PATH)
-clf._Booster = booster
-clf._le = LabelEncoder().fit(Y)
+# %% Plot: Partial Dependence via `pdpbox` -----------------------------------
 
-# %% Test ----
-y_pred_proba = clf.predict_proba(X)
-y_pred = clf.predict(X)
+# %% target_plot -------------------------------------------------------------
 
-y_pred_proba.shape
-y_pred.shape
-# %%
-# %%
-model.predict(X).shape
-# %%
-
-# %%
-model.predict(X).shape
-# %%
-x_cols
-# %%
-# model._Booster.feature_names = [for model._Booster.feature_names]
-# aa[-1]
-# %%
-# X.index = [f'f{i}' for i in X.index]
-# Y.index = [f'f{i}' for i in Y.index]
-# %%
-print(X.shape, Y.shape)
-# %%
-x_cols = X.columns.tolist()
-y_cols = Y.columns.tolist()
-
-# %%
-
-# default
 fig, axes, summary_df = info_plots.target_plot(
     df=XY,
     feature=x_cols[2],
@@ -92,26 +266,29 @@ fig, axes, summary_df = info_plots.target_plot(
     target=y_cols[0],
 )
 
-# %%
+# %% actual_plot -------------------------------------------------------------
 
 fig, axes, df = info_plots.actual_plot(
-    model=clf,
+    model=model,
     X=X,
     feature=x_cols[1],
     feature_name=x_cols[1],
     which_classes=[0, 3, 6],
-    predict_kwds={},  # This parameter should be passed to avoid a strange TypeError
+    predict_kwds={},  # !This should be passed to avoid a strange TypeError
 )
-# %%
+
+# %% pdp_isolate: Preset -----------------------------------------------------
+
 pdp_isolated_tmp = pdp.pdp_isolate(
-    model=clf,
+    model=model,
     dataset=X,
     model_features=x_cols,
     feature=x_cols[0],
     n_jobs=1,
 )
 
-# %%
+# %% pdp_plot
+
 fig, axes = pdp.pdp_plot(
     pdp_isolate_out=pdp_isolated_tmp,
     feature_name=x_cols[:2],
@@ -119,8 +296,9 @@ fig, axes = pdp.pdp_plot(
     ncols=3, plot_lines=True, frac_to_plot=100,
     plot_pts_dist=True,
 )
-# %%
-# default
+
+# %% target_plot_interact ----------------------------------------------------
+
 fig, axes, summary_df = info_plots.target_plot_interact(
     df=XY,
     features=x_cols[2:],
@@ -128,17 +306,20 @@ fig, axes, summary_df = info_plots.target_plot_interact(
     target=y_cols[0],
 )
 
-# %%
+# %% actual_plot_interact ----------------------------------------------------
+
 fig, axes, summary_df = info_plots.actual_plot_interact(
-    model=clf,
+    model=model,
     X=X,
     features=x_cols[3:],
     feature_names=x_cols[3:],
     which_classes=[2, 5],
 )
-# %%
-pdp_interacted_tmp= pdp.pdp_interact(
-    model=clf,
+
+# %% pdp_interact: Preset ----------------------------------------------------
+
+pdp_interacted_tmp = pdp.pdp_interact(
+    model=model,
     dataset=X,
     model_features=x_cols,
     features=x_cols[:2],
@@ -146,7 +327,9 @@ pdp_interacted_tmp= pdp.pdp_interact(
     percentile_ranges=[None, None],
     n_jobs=1,
 )
-# %%
+
+# %% pdp_interact_plot: grid
+
 fig, axes = pdp.pdp_interact_plot(
     pdp_interacted_tmp,
     feature_names=x_cols,
@@ -157,207 +340,29 @@ fig, axes = pdp.pdp_interact_plot(
     which_classes=[1, 2, 3],
 )
 
-# %%
+# %% pdp_interact_plot: contour
+
 fig, axes = pdp.pdp_interact_plot(
     pdp_interacted_tmp,
     feature_names=x_cols,
     plot_type='contour',
     x_quantile=True,
-    ncols=1,
+    # ncols=1,
     plot_pdp=True,
     which_classes=[1, 2],
 )
 
-
-
-# %% Hand-Made Debugging -----------------------------------------------------
-
-from joblib import Parallel, delayed
-dataset = X
-model_features = x_cols
-feature = x_cols[0]
-grid_type = 'percentile'
-percentile_range = None
-memory_limit = .5
-num_grid_points = 20
-grid_range = None
-cust_grid_points = None
-data_transformer = None
-predict_kwds = {}
-n_jobs=1
-
-print(model_features)
-print(feature)
-
-# %%
-
-def _calc_ice_lines(feature_grid, data, model, model_features, n_classes, feature, feature_type,
-                    predict_kwds, data_transformer, unit_test=False):
-    """Apply predict function on a feature_grid
-
-    Returns
-    -------
-    Predicted result on this feature_grid
-    """
-
-    _data = data.copy()
-    if feature_type == 'onehot':
-        # for onehot encoding feature, need to change all levels together
-        other_grids = [grid for grid in feature if grid != feature_grid]
-        _data[feature_grid] = 1
-        for grid in other_grids:
-            _data[grid] = 0
-    else:
-        _data[feature] = feature_grid
-
-    # if there are other features highly depend on the investigating feature
-    # other features should also adjust based on the changed feature value
-    # Example:
-    # there are 3 features: a, b, a_b_ratio
-    # if feature a is the investigated feature
-    # data_transformer should be:
-    # def data_transformer(df):
-    #   df["a_b_ratio"] = df["a"] / df["b"]
-    #   return df
-    if data_transformer is not None:
-        _data = data_transformer(_data)
-
-    if n_classes == 0:
-        predict = model.predict
-    else:
-        predict = model.predict_proba
-
-    # get predictions for this chunk
-    preds = predict(_data[model_features], **predict_kwds)
-
-    if n_classes == 0:
-        grid_results = pd.DataFrame(preds, columns=[feature_grid])
-    elif n_classes == 2:
-        grid_results = pd.DataFrame(preds[:, 1], columns=[feature_grid])
-    else:
-        grid_results = []
-        for n_class in range(n_classes):
-            grid_result = pd.DataFrame(preds[:, n_class], columns=[feature_grid])
-            grid_results.append(grid_result)
-
-    # _data is returned for unit test
-    if unit_test:
-        return grid_results, _data
-    else:
-        return grid_results
-
-
-n_classes, predict = pdpbox.utils._check_model(model)
-pdpbox.utils._check_dataset(df=dataset)
-_dataset = X.copy()
-
-feature_type = pdpbox.utils._check_feature(feature=feature, df=_dataset)
-feature_type
-pdpbox.utils._check_grid_type(grid_type=grid_type)
-pdpbox.utils._check_percentile_range(percentile_range=percentile_range)
-pdpbox.utils._check_memory_limit(memory_limit=memory_limit)
-
-percentile_info = []
-if feature_type == 'binary':
-    feature_grids = np.array([0, 1])
-    display_columns = ['%s_0' % feature, '%s_1' % feature]
-elif feature_type == 'onehot':
-    feature_grids = np.array(feature)
-    display_columns = feature
-else:
-    # calculate grid points for numeric features
-    if cust_grid_points is None:
-        feature_grids, percentile_info = pdpbox.utils._get_grids(
-            feature_values=_dataset[feature].values, num_grid_points=num_grid_points, grid_type=grid_type,
-            percentile_range=percentile_range, grid_range=grid_range)
-    else:
-        # make sure grid points are unique and in ascending order
-        feature_grids = np.array(sorted(np.unique(cust_grid_points)))
-    display_columns = [pdpbox.utils._get_string(v) for v in feature_grids]
-
-feature_grids
-display_columns
-
-# %%
-"""
-Real-Code: Parallel Genereator Expression
-
-grid_results = Parallel(n_jobs=true_n_jobs)(
-    delayed(_calc_ice_lines)(
-        feature_grid, data=_dataset, model=model, model_features=model_features, n_classes=n_classes,
-        feature=feature, feature_type=feature_type, predict_kwds=predict_kwds, data_transformer=data_transformer)
-    for feature_grid in feature_grids
+error_msg = ' '.join(
+    [
+        "TypeError:",
+        "clabel() got an unexpected keyword argument ",
+        "'contour_label_fontsize'.",
+    ]
+)
+print(
+    "In case of using `matplotlib==3.x`, the following error will be shown:",
+    f"`{error_msg}`",
+    sep="\n",
 )
 
-The Following: Converting as For-Loop to track variables.
-"""
-# Parallel calculate ICE lines
-final_grid_results = []
-for __feature_grid in feature_grids:
-    # res = _calc_ice_lines(
-    #     feature_grid, data=_dataset, model=model, model_features=model_features, n_classes=n_classes,
-    #     feature=feature, feature_type=feature_type, predict_kwds=predict_kwds, data_transformer=data_transformer,
-    # )
-    __data = _dataset
-    __model = model
-    __model_features = model_features
-    __n_classes = n_classes
-    __feature = feature
-    __feature_type = feature_type
-    __predict_kwds = predict_kwds
-    __data_transformer = data_transformer
-
-    _data = __data.copy()
-    if __feature_type == 'onehot':
-        # for onehot encoding feature, need to change all levels together
-        other_grids = [grid for grid in __feature if grid != __feature_grid]
-        __data[__feature_grid] = 1
-        for grid in other_grids:
-            _data[grid] = 0
-    else:
-        __data[feature] = __feature_grid
-
-    # if there are other features highly depend on the investigating feature
-    # other features should also adjust based on the changed feature value
-    # Example:
-    # there are 3 features: a, b, a_b_ratio
-    # if feature a is the investigated feature
-    # data_transformer should be:
-    # def data_transformer(df):
-    #   df["a_b_ratio"] = df["a"] / df["b"]
-    #   return df
-    if __data_transformer is not None:
-        __data = __data_transformer(__data)
-
-    if __n_classes == 0:
-        predict = __model.predict
-    else:
-        predict = __model.predict_proba
-
-    # get predictions for this chunk
-    preds = predict(__data[__model_features], **__predict_kwds)
-
-    if __n_classes == 0:
-        grid_results = pd.DataFrame(preds, columns=[__feature_grid])
-    elif __n_classes == 2:
-        grid_results = pd.DataFrame(preds[:, 1], columns=[__feature_grid])
-    else:
-        grid_results = []
-        for n_class in range(__n_classes):
-            grid_result = pd.DataFrame(
-                preds[:, n_class], columns=[__feature_grid],
-            )
-            grid_results.append(grid_result)
-
-    res_grid_results = grid_results
-    grid_results += [res_grid_results]
-
-# %%
-
-__data.shape
-__model_features
-preds.shape
-
-feature_grids
-__feature_grid
-[__feature_grid]
+print('finished.')

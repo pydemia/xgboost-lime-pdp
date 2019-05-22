@@ -37088,25 +37088,31 @@
 /***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map </script></head><body>
-        <div class="lime top_div" id="top_divTN5NWY7D1MP72A9"></div>
+        <div class="lime top_div" id="top_divITXNF6QDKZZDNP3"></div>
         
         <script>
-        var top_div = d3.select('#top_divTN5NWY7D1MP72A9').classed('lime top_div', true);
+        var top_div = d3.select('#top_divITXNF6QDKZZDNP3').classed('lime top_div', true);
         
             var pp_div = top_div.append('div')
                                 .classed('lime predict_proba', true);
             var pp_svg = pp_div.append('svg').style('width', '100%');
-            var pp = new lime.PredictProba(pp_svg, ["1", "2", "3"], [0.3757258951663971, 0.21177196502685547, 0.21255932748317719, 0.19994278252124786]);
+            var pp = new lime.PredictProba(pp_svg, ["1", "2", "3"], [0.650447428226471, 0.0961836650967598, 0.253360390663147, 8.506849553668872e-06]);
             
         
         var exp_div;
             var exp = new lime.Explanation(["1", "2", "3"]);
         
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["Destination_Type <= 0.00", 0.001811781852516732], ["Type_of_Cab > 2.00", 0.0014222935448930459], ["Var3 > 82.00", -0.00014808394746040673], ["0.43 < Customer_Rating <= 0.58", 8.014652496745663e-05], ["Trip_Distance <= 0.22", 6.771286848614505e-05], ["0.60 < Customer_Since_Months <= 1.00", 2.0633288592476722e-05]], 1, exp_div);
+                exp.show([["f1 <= 1.00", -0.17301133013807374], ["0.00 < f0 <= 1.00", 0.03256188707726877], ["f5 > 74.00", -0.018958484476709437], ["0.35 < f4 <= 0.55", -0.014483574215289308], ["0.60 < f3 <= 1.00", -0.012601038873823684]], 0, exp_div);
+                
+                exp_div = top_div.append('div').classed('lime explanation', true);
+                exp.show([["f1 <= 1.00", -0.21725373211337293], ["0.00 < f0 <= 1.00", -0.11703864760238679], ["f5 > 74.00", -0.08698604811253877], ["0.58 < f2 <= 0.72", -0.027464224203770572], ["0.60 < f3 <= 1.00", 0.024899053669799106]], 1, exp_div);
+                
+                exp_div = top_div.append('div').classed('lime explanation', true);
+                exp.show([["f1 <= 1.00", 0.3904225535745489], ["f5 > 74.00", 0.1060755229243949], ["0.00 < f0 <= 1.00", 0.0847344260778562], ["0.58 < f2 <= 0.72", 0.02442708660511392], ["0.60 < f3 <= 1.00", -0.011922612978525841]], 2, exp_div);
                 
         var raw_div = top_div.append('div');
-            exp.show_raw_tabular([["Destination_Type", "0.00", 0.001811781852516732], ["Type_of_Cab", "4.00", 0.0014222935448930459], ["Var3", "91.00", -0.00014808394746040673], ["Customer_Rating", "0.52", 8.014652496745663e-05], ["Trip_Distance", "0.17", 6.771286848614505e-05], ["Customer_Since_Months", "1.00", 2.0633288592476722e-05]], 1, raw_div);
+            exp.show_raw_tabular([["f1", "1.00", -0.17301133013807374], ["f0", "1.00", 0.03256188707726877], ["f5", "80.00", -0.018958484476709437], ["f4", "0.39", -0.014483574215289308], ["f3", "1.00", -0.012601038873823684]], 0, raw_div);
         
         </script>
         </body></html>

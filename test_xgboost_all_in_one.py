@@ -20,8 +20,11 @@ import xgboost as xgb
 import lime
 from lime import lime_tabular
 
+import pdpbox
+from pdpbox import pdp, info_plots
 
-for _pkg in [np, pd, skl, xgb, mpl]:
+
+for _pkg in [np, pd, skl, xgb, mpl, pdpbox]:
     print(f'{_pkg.__name__:<7} = {_pkg.__version__}')
 
 font_dict = {
@@ -31,7 +34,6 @@ font_dict = {
 }
 
 plt.rcParams['font.family'] = sorted(font_dict.keys(), key=len)[0]
-
 os.chdir('../git/xgboost-lime-pdp')
 fpath = '.'
 
@@ -284,5 +286,116 @@ exp = explainer.explain_instance(
 exp.save_to_file('lime_result.html')
 
 exp.show_in_notebook(show_all=True)
+
+
+# %% Plot: Partial Dependence via `pdpbox` -----------------------------------
+
+# %% target_plot -------------------------------------------------------------
+
+fig, axes, summary_df = info_plots.target_plot(
+    df=XY,
+    feature=x_cols[2],
+    feature_name=x_cols[2],
+    target=y_cols[0],
+)
+
+# %% actual_plot -------------------------------------------------------------
+
+fig, axes, df = info_plots.actual_plot(
+    model=model,
+    X=X,
+    feature=x_cols[1],
+    feature_name=x_cols[1],
+    which_classes=[0, 3, 6],
+    predict_kwds={},  # !This should be passed to avoid a strange TypeError
+)
+
+# %% pdp_isolate: Preset -----------------------------------------------------
+
+pdp_isolated_tmp = pdp.pdp_isolate(
+    model=model,
+    dataset=X,
+    model_features=x_cols,
+    feature=x_cols[0],
+    n_jobs=1,
+)
+
+# %% pdp_plot
+
+fig, axes = pdp.pdp_plot(
+    pdp_isolate_out=pdp_isolated_tmp,
+    feature_name=x_cols[:2],
+    center=True, x_quantile=True,
+    ncols=3, plot_lines=True, frac_to_plot=100,
+    plot_pts_dist=True,
+)
+
+# %% target_plot_interact ----------------------------------------------------
+
+fig, axes, summary_df = info_plots.target_plot_interact(
+    df=XY,
+    features=x_cols[2:],
+    feature_names=x_cols[2:],
+    target=y_cols[0],
+)
+
+# %% actual_plot_interact ----------------------------------------------------
+
+fig, axes, summary_df = info_plots.actual_plot_interact(
+    model=model,
+    X=X,
+    features=x_cols[3:],
+    feature_names=x_cols[3:],
+    which_classes=[2, 5],
+)
+
+# %% pdp_interact: Preset ----------------------------------------------------
+
+pdp_interacted_tmp = pdp.pdp_interact(
+    model=model,
+    dataset=X,
+    model_features=x_cols,
+    features=x_cols[:2],
+    num_grid_points=[10, 10],
+    percentile_ranges=[None, None],
+    n_jobs=1,
+)
+
+# %% pdp_interact_plot: grid
+
+fig, axes = pdp.pdp_interact_plot(
+    pdp_interacted_tmp,
+    feature_names=x_cols,
+    plot_type='grid',
+    x_quantile=True,
+    ncols=2,
+    plot_pdp=True,
+    which_classes=[1, 2, 3],
+)
+
+# %% pdp_interact_plot: contour
+
+fig, axes = pdp.pdp_interact_plot(
+    pdp_interacted_tmp,
+    feature_names=x_cols,
+    plot_type='contour',
+    x_quantile=True,
+    # ncols=1,
+    plot_pdp=True,
+    which_classes=[1, 2],
+)
+
+error_msg = ' '.join(
+    [
+        "TypeError:",
+        "clabel() got an unexpected keyword argument ",
+        "'contour_label_fontsize'.",
+    ]
+)
+print(
+    "In case of using `matplotlib==3.x`, the following error will be shown:",
+    f"`{error_msg}`",
+    sep="\n",
+)
 
 print('finished.')
