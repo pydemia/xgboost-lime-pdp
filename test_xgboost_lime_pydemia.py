@@ -83,8 +83,7 @@ def preprocess_by_column(dataframe):
     """Column Typing & Categorization.
 
     If a column has `float`, it will be min-max scaled.
-    If a column has `str`, it will be categorized & substitute by int,
-    which is its code number.
+    If a column has `str`, it will be categorized & substitute by int, which is its code number.
     If a column has `int`, do nothing.
 
     Parameters
@@ -123,7 +122,7 @@ def preprocess_by_column(dataframe):
             dataframe[cat_columns].apply(lambda x: x.cat.categorical)
         )
         category_dict = (
-            XY
+            dataframe
             [cat_columns]
             .agg(lambda x: [x.cat.categories.tolist()])
             .to_dict('records')
@@ -150,6 +149,7 @@ def preprocess_by_column(dataframe):
 # %% LOAD DATA: CASE in {1, 2} -----------------------------------------------
 
 CASE = 2
+COLNAMES_TO_FLIKE = True
 
 if int(CASE) == 1:
     DUMP_PATH = f'{fpath}/data/nativeBoost2'
@@ -198,15 +198,8 @@ if int(CASE) == 1:
         axis=1,
     )
 
-    XY = data
-
-    # XY.columns = [f"f{i}" for i in range(len(XY.columns))]
-    # X.columns = XY.columns[:len(X.columns)]
-    # Y.columns = XY.columns[len(X.columns):]
-
     y_cols = target_names = ['Surge_Pricing_Type']
-    x_cols = feature_names = data.columns.drop(target_names).tolist()
-    xy_cols = data.columns.tolist()
+
 
 elif int(CASE) == 2:
     int_type_colnames = ['c1', 'c2', 'c6', 'r1']
@@ -218,26 +211,43 @@ elif int(CASE) == 2:
     Y = test_df = pd.read_csv(
         test_filename, header=0, converters=col_converter,
     )
-    XY = data = pd.concat([X, Y], axis=1)
+    data = pd.concat([X, Y], axis=1)
 
-    XY.columns = [f"f{i}" for i in range(len(XY.columns))]
-    X.columns = XY.columns[:len(X.columns)]
-    Y.columns = XY.columns[len(X.columns):]
+    y_cols = target_names = ['r1']
 
-    y_cols = target_names = Y.columns.tolist()
-    x_cols = feature_names = X.columns.tolist()
-    xy_cols = XY.columns.tolist()
+
+x_cols = feature_names = data.columns.drop(target_names).tolist()
+xy_cols = x_cols + y_cols
+data = data[xy_cols]
+print(data.columns)
+
+if COLNAMES_TO_FLIKE:
+    data.columns = [f"f{i}" for i in range(len(data.columns))]
+    y_cols = target_names = [data.columns[-1]]
+
+x_cols = feature_names = data.columns.drop(y_cols).tolist()
+xy_cols = data.columns.tolist()
 
 
 # %% Preprocessing -----------------------------------------------------------
 
-XY, col_types_dict, category_dict, float_scaler = preprocess_by_column(XY)
+XY, col_types_dict, category_dict, float_scaler = preprocess_by_column(data)
 
-X = source_df = XY[XY.columns.drop(target_names)]
-Y = target_df = XY[target_names]
+X = source_df = XY[x_cols]
+Y = target_df = XY[y_cols]
 Y_series = target_series = Y[Y.columns[0]]
 
 print(target_names)
+
+y_class_dict = {
+    2: 'A Grade',
+    0: 'B Grade',
+    1: 'C Grade',
+}
+y_class_list = [
+    item[1]
+    for item in sorted(list(y_class_dict.items()), key=lambda x: x[0])
+]
 
 
 # %% Load a pre-trained Model ------------------------------------------------
@@ -245,7 +255,7 @@ print(target_names)
 model = xgb.XGBClassifier(objective='multi:softprob')
 model.load_model(DUMP_PATH)
 model.n_classes_ = len(np.unique(Y.values))
-model._le = LabelEncoder().fit(np.unique(Y.values))
+model._le = LabelEncoder().fit(np.unique(list(y_class_dict.keys())))
 
 print(model)
 print('X: ', X.shape)
@@ -256,15 +266,26 @@ print('predict: ', model.predict(X).shape)
 
 # %% Plot: Blackbox Interpretation via `lime` --------------------------------
 
+y_class_dict = {
+    2: 'A Grade',
+    0: 'B Grade',
+    1: 'C Grade',
+}
+y_class_list = [
+    item[1]
+    for item in sorted(list(y_class_dict.items()), key=lambda x: x[0])
+]
+
 input_df = X
 input_arr = input_df.values
 category_colnames = list(category_dict.keys())
+y_category_list = y_class_list
 
 explainer = lime.lime_tabular.LimeTabularExplainer(
     input_arr,
     mode='classification',
     feature_names=xy_cols,  # [f"f{i}" for i in range(len(XY.columns))],
-    class_names=category_dict[target_names[0]],  # + ['4'],
+    class_names=y_category_list,  # + ['4'],
     categorical_features=category_colnames,
     categorical_names=category_colnames,
     feature_selection='auto',  # 'forward_selection', 'lasso_path', 'auto'
@@ -275,8 +296,8 @@ explainer = lime.lime_tabular.LimeTabularExplainer(
 exp = explainer.explain_instance(
     data_row=input_arr[1],
     predict_fn=model.predict_proba,
-    labels=np.unique(Y),
-    num_features=5,
+    labels=y_class_dict.keys(),
+    num_features=4,
     num_samples=3000,
 )
 
