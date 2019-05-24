@@ -37088,31 +37088,31 @@
 /***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map </script></head><body>
-        <div class="lime top_div" id="top_div4HL9DGSK54FMW1P"></div>
+        <div class="lime top_div" id="top_div5TF0PDL473SNMIB"></div>
         
         <script>
-        var top_div = d3.select('#top_div4HL9DGSK54FMW1P').classed('lime top_div', true);
+        var top_div = d3.select('#top_div5TF0PDL473SNMIB').classed('lime top_div', true);
         
             var pp_div = top_div.append('div')
                                 .classed('lime predict_proba', true);
             var pp_svg = pp_div.append('svg').style('width', '100%');
-            var pp = new lime.PredictProba(pp_svg, ["B Grade", "C Grade", "A Grade"], [0.3662170171737671, 0.20990732312202454, 0.21842004358768463, 0.20545564591884613]);
+            var pp = new lime.PredictProba(pp_svg, ["B Grade", "C Grade", "A Grade"], [0.650447428226471, 0.0961836650967598, 0.253360390663147, 8.506849553668872e-06]);
             
         
         var exp_div;
             var exp = new lime.Explanation(["B Grade", "C Grade", "A Grade"]);
         
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["f2 <= 0.00", -0.006277068698883687], ["f4 <= 1.00", 0.0021737680186767762], ["75.00 < f5 <= 82.00", -0.0003493810670832537], ["0.60 < f1 <= 1.00", -0.0002542282990347582]], 2, exp_div);
+                exp.show([["f1 <= 1.00", 0.3939792926683398], ["f5 > 74.00", 0.10943081665742273], ["0.00 < f0 <= 1.00", 0.10492749928666102], ["0.58 < f2 <= 0.72", 0.03395819414635942]], 2, exp_div);
                 
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["f4 <= 1.00", -0.0037585292443070182], ["f2 <= 0.00", 0.0029823276541269695], ["0.22 < f3 <= 0.35", -0.0003677835924807594], ["0.60 < f1 <= 1.00", 0.0003624020524109329]], 0, exp_div);
+                exp.show([["f1 <= 1.00", -0.17045096935512613], ["0.00 < f0 <= 1.00", 0.017618854551102507], ["0.35 < f4 <= 0.55", -0.014419242956970203], ["0.60 < f3 <= 1.00", -0.010722503540130917]], 0, exp_div);
                 
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["f2 <= 0.00", 0.0016838820425927555], ["f4 <= 1.00", -0.000717321302473553], ["75.00 < f5 <= 82.00", 0.0001136219865902025], ["0.22 < f3 <= 0.35", -6.643354862121553e-05]], 1, exp_div);
+                exp.show([["f1 <= 1.00", -0.22289594107217356], ["0.00 < f0 <= 1.00", -0.12255443867194853], ["f5 > 74.00", -0.09848320396933818], ["0.58 < f2 <= 0.72", -0.03513773937622768]], 1, exp_div);
                 
         var raw_div = top_div.append('div');
-            exp.show_raw_tabular([["f2", "0.00", -0.006277068698883687], ["f4", "1.00", 0.0021737680186767762], ["f5", "80.00", -0.0003493810670832537], ["f1", "1.00", -0.0002542282990347582]], 2, raw_div);
+            exp.show_raw_tabular([["f1", "1.00", 0.3939792926683398], ["f5", "80.00", 0.10943081665742273], ["f0", "1.00", 0.10492749928666102], ["f2", "0.59", 0.03395819414635942]], 2, raw_div);
         
         </script>
         </body></html>
