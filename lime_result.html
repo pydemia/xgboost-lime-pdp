@@ -37088,10 +37088,10 @@
 /***/ })
 /******/ ]);
 //# sourceMappingURL=bundle.js.map </script></head><body>
-        <div class="lime top_div" id="top_divHAND3Z2UU4V1CQF"></div>
+        <div class="lime top_div" id="top_div4HL9DGSK54FMW1P"></div>
         
         <script>
-        var top_div = d3.select('#top_divHAND3Z2UU4V1CQF').classed('lime top_div', true);
+        var top_div = d3.select('#top_div4HL9DGSK54FMW1P').classed('lime top_div', true);
         
             var pp_div = top_div.append('div')
                                 .classed('lime predict_proba', true);
@@ -37103,16 +37103,16 @@
             var exp = new lime.Explanation(["B Grade", "C Grade", "A Grade"]);
         
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["f2 <= 0.00", -0.0060951921923349936], ["f4 <= 1.00", 0.0021932134312858324], ["75.00 < f5 <= 82.00", 0.00025442232948239945], ["0.58 < f0 <= 0.72", -0.00021676595667984984]], 2, exp_div);
+                exp.show([["f2 <= 0.00", -0.006277068698883687], ["f4 <= 1.00", 0.0021737680186767762], ["75.00 < f5 <= 82.00", -0.0003493810670832537], ["0.60 < f1 <= 1.00", -0.0002542282990347582]], 2, exp_div);
                 
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["f4 <= 1.00", -0.003774264005042504], ["f2 <= 0.00", 0.0027959006571835294], ["75.00 < f5 <= 82.00", -0.00020822873037489611], ["0.60 < f1 <= 1.00", -0.0001616135979415363]], 0, exp_div);
+                exp.show([["f4 <= 1.00", -0.0037585292443070182], ["f2 <= 0.00", 0.0029823276541269695], ["0.22 < f3 <= 0.35", -0.0003677835924807594], ["0.60 < f1 <= 1.00", 0.0003624020524109329]], 0, exp_div);
                 
                 exp_div = top_div.append('div').classed('lime explanation', true);
-                exp.show([["f2 <= 0.00", 0.0016328933679852968], ["f4 <= 1.00", -0.0007165864130325013], ["75.00 < f5 <= 82.00", -6.661570697947083e-05], ["0.60 < f1 <= 1.00", -4.710877549802371e-05]], 1, exp_div);
+                exp.show([["f2 <= 0.00", 0.0016838820425927555], ["f4 <= 1.00", -0.000717321302473553], ["75.00 < f5 <= 82.00", 0.0001136219865902025], ["0.22 < f3 <= 0.35", -6.643354862121553e-05]], 1, exp_div);
                 
         var raw_div = top_div.append('div');
-            exp.show_raw_tabular([["f2", "0.00", -0.0060951921923349936], ["f4", "1.00", 0.0021932134312858324], ["f5", "80.00", 0.00025442232948239945], ["f0", "0.69", -0.00021676595667984984]], 2, raw_div);
+            exp.show_raw_tabular([["f2", "0.00", -0.006277068698883687], ["f4", "1.00", 0.0021737680186767762], ["f5", "80.00", -0.0003493810670832537], ["f1", "1.00", -0.0002542282990347582]], 2, raw_div);
         
         </script>
         </body></html>
