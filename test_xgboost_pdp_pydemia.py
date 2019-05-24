@@ -12,6 +12,7 @@ import matplotlib.font_manager as fm
 import sklearn as skl
 from sklearn.base import TransformerMixin
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.metrics import accuracy_score
 
 import xgboost as xgb
 # from xgboost.compat import XGBLabelEncoder
@@ -240,22 +241,36 @@ Y_series = target_series = Y[Y.columns[0]]
 
 print(target_names)
 
-y_class_dict = {
-    2: 'A Grade',
-    0: 'B Grade',
-    1: 'C Grade',
+y_label_mapping_dict = {
+    2: 0,
+    0: 1,
+    1: 2,
 }
-y_class_list = [
+y_class_name_dict = {
+    0: 'A Grade',
+    1: 'B Grade',
+    2: 'C Grade',
+}
+y_label_encode_list = [
     item[1]
-    for item in sorted(list(y_class_dict.items()), key=lambda x: x[0])
+    for item in sorted(list(y_label_mapping_dict.items()), key=lambda x: x[0])
+]
+y_class_code_list = [
+    item[0]
+    for item in sorted(list(y_class_name_dict.items()), key=lambda x: x[0])
+]
+y_class_name_list = [
+    item[1]
+    for item in sorted(list(y_class_name_dict.items()), key=lambda x: x[0])
 ]
 
+
 # %% Load a pre-trained Model ------------------------------------------------
-np.unique(y_class_list)
+
 model = xgb.XGBClassifier(objective='multi:softprob')
 model.load_model(DUMP_PATH)
 model.n_classes_ = len(np.unique(Y.values))
-model._le = LabelEncoder().fit(np.unique(list(y_class_dict.keys())))
+model._le = LabelEncoder().fit(y_label_encode_list)
 
 
 print(model)
@@ -263,6 +278,7 @@ print('X: ', X.shape)
 print('Y unique: ', len(np.unique(Y)), np.unique(Y))
 print('predict_proba: ', model.predict_proba(X).shape)
 print('predict: ', model.predict(X).shape)
+print(f"accuracy: {accuracy_score(Y_series.values, model.predict(X))}")
 
 
 # %% Plot: Partial Dependence via `pdpbox` -----------------------------------
