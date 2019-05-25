@@ -133,6 +133,6 @@ class IntLabelEncoder(LabelEncoder):
 # %% Test --------------------------------------------------------------------
 
 le = IntLabelEncoder().fit([2, 1, 6])
-le.classes_
-le.transform([6, 6, 2, 1])
-le.inverse_transform([0, 2, 0, 1])
+print(le.classes_)
+print(le.transform([6, 6, 2, 1]))
+print(le.inverse_transform([0, 2, 0, 1]))
