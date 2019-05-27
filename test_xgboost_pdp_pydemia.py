@@ -12,6 +12,7 @@ import matplotlib.font_manager as fm
 import sklearn as skl
 from sklearn.base import TransformerMixin
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from custom_labelencoder import IntLabelEncoder
 from sklearn.metrics import accuracy_score
 
 import xgboost as xgb
@@ -34,7 +35,7 @@ font_dict = {
 plt.rcParams['font.family'] = sorted(font_dict.keys(), key=len)[0]
 
 
-os.chdir('../git/xgboost-lime-pdp')
+# os.chdir('../git/xgboost-lime-pdp')
 fpath = '.'
 
 
@@ -270,7 +271,7 @@ y_class_name_list = [
 model = xgb.XGBClassifier(objective='multi:softprob')
 model.load_model(DUMP_PATH)
 model.n_classes_ = len(np.unique(Y.values))
-model._le = LabelEncoder().fit(y_label_encode_list)
+model._le = IntLabelEncoder().fit(y_label_encode_list)
 
 
 print(model)
@@ -391,4 +392,4 @@ print(
     sep="\n",
 )
 
-print('finished.')
+print('Finished.')
