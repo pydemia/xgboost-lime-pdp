@@ -400,27 +400,28 @@ fig, axes = pdp.pdp_interact_plot(
 
 # %% pdp_interact_plot: contour
 
-fig, axes = pdp.pdp_interact_plot(
-    pdp_interacted_tmp,
-    feature_names=x_cols,
-    plot_type='contour',
-    x_quantile=True,
-    # ncols=1,
-    plot_pdp=True,
-    which_classes=[1, 2],
-)
-
-error_msg = ' '.join(
-    [
-        "TypeError:",
-        "clabel() got an unexpected keyword argument ",
-        "'contour_label_fontsize'.",
-    ]
-)
-print(
-    "In case of using `matplotlib==3.x`, the following error will be shown:",
-    f"`{error_msg}`",
-    sep="\n",
-)
+try:
+    fig, axes = pdp.pdp_interact_plot(
+        pdp_interacted_tmp,
+        feature_names=x_cols,
+        plot_type='contour',
+        x_quantile=True,
+        # ncols=1,
+        plot_pdp=True,
+        which_classes=[1, 2],
+    )
+except:
+    error_msg = ' '.join(
+        [
+            "TypeError:",
+            "clabel() got an unexpected keyword argument ",
+            "'contour_label_fontsize'.",
+        ]
+    )
+    print(
+        "In case of using `matplotlib==3.x`, the following error will be shown:",
+        f"`{error_msg}`",
+        sep="\n",
+    )
 
 print('Finished.')
