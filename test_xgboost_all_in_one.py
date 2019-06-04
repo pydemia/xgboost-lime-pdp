@@ -12,6 +12,7 @@ import matplotlib.font_manager as fm
 import sklearn as skl
 from sklearn.base import TransformerMixin
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from custom_labelencoder import IntLabelEncoder
 from sklearn.metrics import accuracy_score
 
 import xgboost as xgb
@@ -35,7 +36,7 @@ font_dict = {
 }
 
 plt.rcParams['font.family'] = sorted(font_dict.keys(), key=len)[0]
-os.chdir('../git/xgboost-lime-pdp')
+# os.chdir('../git/xgboost-lime-pdp')
 fpath = '.'
 
 
@@ -270,7 +271,7 @@ y_class_name_list = [
 model = xgb.XGBClassifier(objective='multi:softprob')
 model.load_model(DUMP_PATH)
 model.n_classes_ = len(np.unique(Y.values))
-model._le = LabelEncoder().fit(y_label_encode_list)
+model._le = IntLabelEncoder().fit(y_label_encode_list)
 
 print(model)
 print('X: ', X.shape)
@@ -309,7 +310,7 @@ exp = explainer.explain_instance(
 # exp_html = exp.as_html()
 exp.save_to_file('lime_result.html')
 
-exp.show_in_notebook(show_all=True)
+# exp.show_in_notebook(show_all=True)
 
 
 # %% Plot: Partial Dependence via `pdpbox` -----------------------------------
@@ -399,27 +400,28 @@ fig, axes = pdp.pdp_interact_plot(
 
 # %% pdp_interact_plot: contour
 
-fig, axes = pdp.pdp_interact_plot(
-    pdp_interacted_tmp,
-    feature_names=x_cols,
-    plot_type='contour',
-    x_quantile=True,
-    # ncols=1,
-    plot_pdp=True,
-    which_classes=[1, 2],
-)
+try:
+    fig, axes = pdp.pdp_interact_plot(
+        pdp_interacted_tmp,
+        feature_names=x_cols,
+        plot_type='contour',
+        x_quantile=True,
+        # ncols=1,
+        plot_pdp=True,
+        which_classes=[1, 2],
+    )
+except:
+    error_msg = ' '.join(
+        [
+            "TypeError:",
+            "clabel() got an unexpected keyword argument ",
+            "'contour_label_fontsize'.",
+        ]
+    )
+    print(
+        "In case of using `matplotlib==3.x`, the following error will be shown:",
+        f"`{error_msg}`",
+        sep="\n",
+    )
 
-error_msg = ' '.join(
-    [
-        "TypeError:",
-        "clabel() got an unexpected keyword argument ",
-        "'contour_label_fontsize'.",
-    ]
-)
-print(
-    "In case of using `matplotlib==3.x`, the following error will be shown:",
-    f"`{error_msg}`",
-    sep="\n",
-)
-
-print('finished.')
+print('Finished.')
