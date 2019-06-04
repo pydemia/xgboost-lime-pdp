@@ -1,7 +1,7 @@
 """Custom LabelEncoder for keep an order of labels.
 """
 
-
+# %%
 import numpy as np
 import pandas as pd
 import sklearn as skl
